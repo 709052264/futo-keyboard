@@ -8,7 +8,7 @@ import org.futo.inputmethod.latin.uix.extendedDarkColorScheme
 import org.futo.inputmethod.latin.uix.theme.ThemeOption
 import org.futo.inputmethod.latin.uix.theme.selector.ThemePreview
 
-private val darkScheme = extendedDarkColorScheme(
+internal val AMOLEDDarkScheme = extendedDarkColorScheme(
     primary=Color(0xFFD0BCFF),
     onPrimary=Color(0xFF381E72),
     primaryContainer=Color(0xFF3A2966),
@@ -49,7 +49,7 @@ val AMOLEDDarkPurple = ThemeOption(
     name = R.string.theme_amoled_dark,
     available = { true }
 ) {
-    darkScheme
+    AMOLEDDarkScheme // 👈 这里也改成大写的这个名字
 }
 
 @Composable
