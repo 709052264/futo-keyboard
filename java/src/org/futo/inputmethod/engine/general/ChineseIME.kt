@@ -83,14 +83,7 @@ object ChineseIMESettings {
         val rimeId: String
     ) {
         // These must not be renamed, or the existing setting value for users will break
-        FullPinyin("全拼", "Full Pinyin", "luna_pinyin"),
-        //Natural("自然碼雙拼", "Double Pinyin", "double_pinyin"),
-        //ABC("智能ABC雙拼", "Double Pinyin - ABC", "double_pinyin_abc"),
-        //FlyPY("小鶴雙拼", "Double Pinyin - flyPY", "double_pinyin_flypy"),
-        //MS("微軟雙拼", "Double Pinyin - MS", "double_pinyin_mspy"),
-        //PYJJ("拼音加加雙拼", "Double Pinyin - PYJJ", "double_pinyin_pyjj"),
-        RimeIce("霧凇拼音", "Rime Ice", "rime_ice"),
-        //ST("四通雙拼", "Double Pinyin - ST", "double_pinyin_st");
+        RimeIce("霧凇拼音", "Rime Ice", "rime_ice");
     }
 
     internal fun initialPatch(pattern: String, substitution: String, twoWay: Boolean)
@@ -139,7 +132,7 @@ object ChineseIMESettings {
 
     val PinyinSchemeSetting = SettingsKey(
         stringPreferencesKey("ChineseIME_pinyin_scheme"),
-        PinyinScheme.FullPinyin.name
+        "rime_ice"
     )
 
     val FuzzyPinyinSetting = SettingsKey(
@@ -643,10 +636,6 @@ class ChineseIME(val helper: IMEHelper) : IMEInterface, SuggestionStripViewAcces
                 val schema = when (layoutHint) {
                     "qwerty" -> {
                         when {
-                            pinyinScheme == ChineseIMESettings.PinyinScheme.FullPinyin -> when {
-                                simplified -> "luna_pinyin_simp"
-                                else -> "luna_pinyin"
-                            }
                             // 👈 新增这一行
                             pinyinScheme == ChineseIMESettings.PinyinScheme.RimeIce -> "rime_ice"
                             else -> pinyinScheme.rimeId
