@@ -159,26 +159,15 @@ object ChineseIMESettings {
             },
 
             UserSetting(R.string.chinese_setting_pinyin_scheme) {
-                val context = LocalContext.current
-                val resources = LocalResources.current
                 val (setting, setSetting) = useDataStore(PinyinSchemeSetting)
-
-                val availableEntries = remember {
-                    val sharedDir = ChineseIME.getShared(context)
-                    val files = (sharedDir.listFiles() ?: emptyArray()).map { it.name.split('.').first() }.toSet()
-                    PinyinScheme.entries.filter {
-                        files.contains(it.rimeId) || it == PinyinScheme.FullPinyin
-                    }
-                }
-                DropDownPickerSettingItem<PinyinScheme>(
+                
+                // 因为我们把其他方案都删了，直接写死 rime_ice
+                DropDownPickerSettingItem<String>(
                     stringResource(R.string.chinese_setting_pinyin_scheme),
-                    availableEntries,
-                    setting.toEnumOrNull<PinyinScheme>() ?: PinyinScheme.FullPinyin,
-                    { setSetting(it.name) },
-                    { when(resources.configuration.locale.language) {
-                        "zh" -> it.displayNameZH
-                        else -> it.displayNameEN
-                    } }
+                    listOf("rime_ice"),
+                    setting,
+                    { setSetting(it) },
+                    { "霧凇拼音 (Rime Ice)" }
                 )
             },
 
@@ -602,8 +591,7 @@ class ChineseIME(val helper: IMEHelper) : IMEInterface, SuggestionStripViewAcces
             appendLine("          states: [ 漢字, 汉字 ]")
             appendLine("    simplifier/option_name: futo_zh_simp")
 
-            // Fuzzy pinyin only added to pinyin layouts
-            if(schema.startsWith("luna_pinyin")) {
+            if(schema == "rime_ice") {
                 appendLine("    speller/algebra/+:")
                 cfg.fuzzyMode.forEach {
                     it.schemePatch.forEach {
@@ -630,29 +618,20 @@ class ChineseIME(val helper: IMEHelper) : IMEInterface, SuggestionStripViewAcces
 
                 val simplified = isSimplifiedChinese(locale)
 
-                val pinyinScheme = helper.context.getSetting(ChineseIMESettings.PinyinSchemeSetting)
-                    .toEnumOrNull<ChineseIMESettings.PinyinScheme>()
-                    ?: ChineseIMESettings.PinyinScheme.FullPinyin
+                val pinyinSchemeId = helper.context.getSetting(ChineseIMESettings.PinyinSchemeSetting)
                 val schema = when (layoutHint) {
                     "qwerty" -> {
-                        when {
-                            // 👈 新增这一行
-                            pinyinScheme == ChineseIMESettings.PinyinScheme.RimeIce -> "rime_ice"
-                            else -> pinyinScheme.rimeId
-                        }
+                        if (pinyinSchemeId.isBlank()) "rime_ice" else pinyinSchemeId
                     }
-
                     "stroke" -> {
                         "stroke"
                     }
-
                     null -> {
                         return@launch
                     }
-
                     else -> {
                         throwIfDebug(IllegalStateException("Invalid layout hint '${layoutHint}'"))
-                        "luna_pinyin"
+                        "rime_ice" // 把原来的 luna_pinyin 也改成 rime_ice
                     }
                 }
 
