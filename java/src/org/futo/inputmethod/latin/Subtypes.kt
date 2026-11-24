@@ -109,7 +109,7 @@ object Subtypes {
         }
     }
 
-    fun addDefaultSubtypesIfNecessary(context: Context) {
+        fun addDefaultSubtypesIfNecessary(context: Context) {
         if(!context.isDirectBootUnlocked) return
 
         val currentSubtypes = context.getSettingBlocking(SubtypesSetting)
@@ -129,6 +129,12 @@ object Subtypes {
             addLanguage(context, locale, layout)
             numAdded += 1
         }
+
+        // 👇【新增】：强制添加中文（zh）
+        val chineseLocale = Locale("zh")
+        val chineseLayout = findClosestLocaleLayouts(context, chineseLocale).firstOrNull() ?: "zh_qwerty"
+        addLanguage(context, chineseLocale, chineseLayout)
+        numAdded += 1
 
         if(numAdded == 0) {
             // We need to have something...
