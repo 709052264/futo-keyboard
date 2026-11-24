@@ -1,8 +1,6 @@
-name: Build FUTO Keyboard
+name: Build and Publish arm64 Release APK 
 
 on:
-  push:
-    branches: [ main, master ]
   workflow_dispatch:
 
 permissions:
@@ -20,8 +18,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: recursive # 👈 关键：拉取官方所有子模块
+          submodules: recursive
           fetch-depth: 0
+
+      # 👇【新增】：自动下载你的 Rime Ice 词典，放入 assets
+      - name: Download Latest Rime Ice Dict
+        run: |
+          echo "Downloading rime_ice.dict from Repo A latest release..."
+          mkdir -p java/assets
+          curl -fL -o java/assets/builtin.dict \
+            "https://github.com/709052264/FUTO-Keyboard-Chinese-Rime_ice-Dict/releases/latest/download/rime_ice.dict"
+          
+          echo "Downloaded size:"
+          ls -lh java/assets/builtin.dict
+          
+          if [ $(stat -c%s "java/assets/builtin.dict") -lt 1048576 ]; then
+            echo "ERROR: Dictionary too small or download failed!"
+            exit 1
+          fi
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -64,9 +78,16 @@ jobs:
           find . -path "*/build/outputs/apk/*" -name "*.apk" -type f -exec cp {} artifacts/ \;
           if [ -z "$(ls -A artifacts)" ]; then echo "NO APK FOUND"; exit 1; fi
 
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: futo-keyboard-release
+          path: artifacts/*.apk
+          if-no-files-found: error
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "v1.0.${{ github.run_number }}"
-          name: "FUTO Keyboard Custom Build ${{ github.run_number }}"
+          name: "FUTO Keyboard Rime-Ice ${{ github.run_number }}"
           files: artifacts/*.apk
