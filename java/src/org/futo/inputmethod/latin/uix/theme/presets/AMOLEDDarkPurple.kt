@@ -58,9 +58,9 @@ internal val AMOLEDDarkScheme = extendedDarkColorScheme(
     onSurfaceTransparent=Color(0xFFE6E1E5).copy(alpha = 0.1f),
 )
 
-val AMOLEDDark = ThemeOption(
+val AMOLEDDarkPurple = ThemeOption(
     dynamic = false,
-    key = "AMOLEDDark",
+    key = "AMOLEDDarkPurple",
     name = R.string.theme_amoled_dark,
     available = { true }
 ) {
@@ -70,5 +70,5 @@ val AMOLEDDark = ThemeOption(
 @Composable
 @Preview
 private fun PreviewTheme() {
-    ThemePreview(AMOLEDDark)
+    ThemePreview(AMOLEDDarkPurple)
 }
