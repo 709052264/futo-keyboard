@@ -17,16 +17,14 @@ val DynamicSystemTheme = ThemeOption(
     name = R.string.theme_dynamic_system,
     available = { Build.VERSION.SDK_INT >= Build.VERSION_CODES.S },
     obtainColors = {
-        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            throw IllegalStateException("DynamicSystemTheme obtainColors called when available() == false")
-        }
-
         val isLight = (it.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
                 Configuration.UI_MODE_NIGHT_NO
 
         when {
-            isLight -> wrapLightColorScheme(dynamicLightColorScheme(it))
-            else -> wrapDarkColorScheme(dynamicDarkColorScheme(it))
+            // 👇 浅色模式直接用 Snowfall 的颜色
+            isLight -> SnowfallLightScheme
+            // 👇 深色模式直接用 AMOLED Dark 的颜色
+            else -> AMOLEDDarkScheme
         }
     }
 )
