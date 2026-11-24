@@ -84,12 +84,13 @@ object ChineseIMESettings {
     ) {
         // These must not be renamed, or the existing setting value for users will break
         FullPinyin("全拼", "Full Pinyin", "luna_pinyin"),
-        Natural("自然碼雙拼", "Double Pinyin", "double_pinyin"),
-        ABC("智能ABC雙拼", "Double Pinyin - ABC", "double_pinyin_abc"),
-        FlyPY("小鶴雙拼", "Double Pinyin - flyPY", "double_pinyin_flypy"),
-        MS("微軟雙拼", "Double Pinyin - MS", "double_pinyin_mspy"),
-        PYJJ("拼音加加雙拼", "Double Pinyin - PYJJ", "double_pinyin_pyjj"),
-        ST("四通雙拼", "Double Pinyin - ST", "double_pinyin_st");
+        //Natural("自然碼雙拼", "Double Pinyin", "double_pinyin"),
+        //ABC("智能ABC雙拼", "Double Pinyin - ABC", "double_pinyin_abc"),
+        //FlyPY("小鶴雙拼", "Double Pinyin - flyPY", "double_pinyin_flypy"),
+        //MS("微軟雙拼", "Double Pinyin - MS", "double_pinyin_mspy"),
+        //PYJJ("拼音加加雙拼", "Double Pinyin - PYJJ", "double_pinyin_pyjj"),
+        RimeIce("霧凇拼音", "Rime Ice", "rime_ice"),
+        //ST("四通雙拼", "Double Pinyin - ST", "double_pinyin_st");
     }
 
     internal fun initialPatch(pattern: String, substitution: String, twoWay: Boolean)
@@ -288,35 +289,61 @@ class ChineseIME(val helper: IMEHelper) : IMEInterface, SuggestionStripViewAcces
         fun resetSharedFromResources(context: Context, scope: CoroutineScope): Boolean {
             val pref = FileKind.Dictionary.preferenceKeyFor("zh")
             val namePref = FileKind.Dictionary.namePreferenceKeyFor("zh")
-            val filePath = context.getSetting(pref, "")
-            val file = File(context.applicationContext.getExternalFilesDir(null), filePath)
+            var filePath = context.getSetting(pref, "")
+            var file = File(context.applicationContext.getExternalFilesDir(null), filePath)
 
-            val name = context.getSetting(namePref, "?")
+            val isFileMissing = filePath.isEmpty() || !file.exists()
+            
+            // 检查 assets 里有没有内置词典
+            val assetFiles = context.assets.list("")?.filter { it.endsWith(".dict") } ?: emptyList()
+            val isUsingBuiltin = isFileMissing && assetFiles.isNotEmpty()
 
+            val currentDictName = if (isUsingBuiltin) "builtin_dict_assets" else context.getSetting(namePref, "?")
 
-
-            if((localPrevExtractedDictionaryName ?: context.getSetting(PreviouslyExtractedDictionaryName)) == name) {
+            if ((localPrevExtractedDictionaryName ?: context.getSetting(PreviouslyExtractedDictionaryName)) == currentDictName) {
                 return false
             }
 
             try {
                 val shared = getShared(context)
-                shared.walkBottomUp()
-                    .fold(true) { res, it -> (it == shared || it.delete() || !it.exists()) && res }
+                shared.walkBottomUp().fold(true) { res, it -> (it == shared || it.delete() || !it.exists()) && res }
 
-                // We are intentionally checking this only after deleting the shared directory
-                // This is because if the user deletes the dictionary file, we want to apply
-                // the deletion (TODO: It doesn't apply)
-                if(filePath.isEmpty()) return true
-                if(!file.exists()) return true
+                if (isUsingBuiltin) {
+                    Log.i("ChineseIME (rime)", "No custom dictionary found, extracting builtin.dict...")
+                    val dictsDir = context.getExternalFilesDir(null) ?: context.filesDir
+                    
+                    for (dictName in assetFiles) {
+                        val destFile = File(dictsDir, dictName)
+                        if (!destFile.exists()) {
+                            context.assets.open(dictName).use { input ->
+                                destFile.outputStream().use { output -> input.copyTo(output) }
+                            }
+                        }
+                        ZipFileHelper.extract(destFile, shared)
+                    }
+                    
+                    // 把真实路径写回设置，让 UI 不再提示“未导入”
+                    if (assetFiles.isNotEmpty()) {
+                        val firstDict = assetFiles.first()
+                        scope.launch(Dispatchers.IO) {
+                            context.setSetting(pref, firstDict)
+                            context.setSetting(namePref, "Built-in Dictionary")
+                        }
+                    }
+                    return true
+                }
 
+                // 用户手动导入词典的逻辑
                 ZipFileHelper.extract(file, shared)
-
                 return true
+                
+            } catch (e: Exception) {
+                Log.e("ChineseIME (rime)", "Failed to extract dictionary", e)
+                return false
             } finally {
-                localPrevExtractedDictionaryName = name
+                localPrevExtractedDictionaryName = currentDictName
                 scope.launch(Dispatchers.IO) {
-                    context.setSetting(PreviouslyExtractedDictionaryName.key, name)
+                    context.setSetting(PreviouslyExtractedDictionaryName.key, currentDictName)
                 }
             }
         }
@@ -620,7 +647,8 @@ class ChineseIME(val helper: IMEHelper) : IMEInterface, SuggestionStripViewAcces
                                 simplified -> "luna_pinyin_simp"
                                 else -> "luna_pinyin"
                             }
-
+                            // 👈 新增这一行
+                            pinyinScheme == ChineseIMESettings.PinyinScheme.RimeIce -> "rime_ice"
                             else -> pinyinScheme.rimeId
                         }
                     }
