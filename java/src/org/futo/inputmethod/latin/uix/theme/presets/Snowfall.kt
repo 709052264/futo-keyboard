@@ -8,7 +8,7 @@ import org.futo.inputmethod.latin.uix.extendedLightColorScheme
 import org.futo.inputmethod.latin.uix.theme.ThemeOption
 import org.futo.inputmethod.latin.uix.theme.selector.ThemePreview
 
-private val lightScheme = extendedLightColorScheme(
+internal val SnowfallLightScheme = extendedLightColorScheme(
     primary=Color(0xFF1D2023),
     onPrimary=Color(0xFFFFFFFF),
     primaryContainer=Color(0xFFBAC5DB),
@@ -50,7 +50,7 @@ val Snowfall = ThemeOption(
     name = R.string.theme_snowfall,
     available = { true }
 ) {
-    lightScheme
+    SnowfallLightScheme // 👈 这里也改成大写的这个名字
 }
 
 @Composable
